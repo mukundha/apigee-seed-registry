@@ -78,21 +78,35 @@ app.post('/o/:org/e/:env/samples/:sample_id', function (req, res) {
 });
 
 app.post('/samples', isAuthenticated, function (req, res) {
-    var name = req.body.name;
-    var description = req.body.description;
-    var gitRepo = req.body.gitURL;
-    var apiFolder = req.body.apiFolder;
-    var user = req.body.user;
-    sample.createSample(name, description, gitRepo, apiFolder, user, function (error, entities) {
-        if (error) {
-            console.log(error);
-            res.json({error: true, response: "Application error"});
-        } else {
-            registry.createEntry(app, entities[0], function (error, entity) {
-                res.json(entity);
+    var id = req.body.name.toLowerCase().replace( / /g, "-");
+    var ent = {
+        name: id,
+        display_name: req.body.name,
+        description: req.body.description,
+        git_repo: req.body.gitURL,
+        api_folder: req.body.apiFolder,
+        user: req.body.user
+    }
+    registry.createEntry(app, ent, 
+        function (error, entity){
+            sample.createSample(entity, function (error, entities) {
+                if (error) {
+                    res.json({error: true, response: "Application error"});
+                } else {
+                    res.json(entity);
+                }
             });
-        }
     });
+      
+    // var name = req.body.name;
+    // var description = req.body.description;
+    // var gitRepo = req.body.gitURL;
+    // var apiFolder = req.body.apiFolder;
+    // var user = req.body.user;
+
+    
+
+    
 });
 
 app.post('/user', isAuthenticated, function (req, res) {

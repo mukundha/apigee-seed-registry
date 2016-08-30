@@ -6,18 +6,9 @@ var baas = require('./baas');
 var constants = require('./../constants/constants');
 var registry = require('./../registry');
 
-function createSample(name, description, gitRepo, apiFolder, user, callback) {
-    var id = replaceAll(name.toLowerCase(), " ", "-");
-    var data = {
-        name: id,
-        display_name: name,
-        description: description,
-        git_repo: gitRepo,
-        api_folder: apiFolder,
-        user: user,
-        in_registry: false
-    };
-    baas.post(constants.SAMPLES, data, callback);
+function createSample(entity, callback) {    
+    entity.in_registry = false    
+    baas.post(constants.SAMPLES, entity, callback);
 }
 
 function checkID(id, sub, callback) {
