@@ -70,8 +70,10 @@ app.get('/samples', function (req, res) {
 });
 
 app.post('/o/:org/e/:env/samples/:sample_id', function (req, res) {
+    var token = req.get('authorization')
+    token = token.replace('Bearer ' , '')    
     sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.deploy(req.params.org, req.params.env, entities[0], req.token, res);
+        registry.deploy(req.params.org, req.params.env, entities[0], token, res);    
     });
 });
 
@@ -141,7 +143,8 @@ app.get('/contribution-guide', function (req, res) {
         res.send(markdown.toHTML(data));
     });
 });
-
+registry.init(app)
+    .then(function(done){console.log('Registry Initialized')}, function(err){console.log('Registry failed to initialize')})
 app.listen(process.env.PORT);
 //TODO: Change to winston
 console.log('Listening on port ' + process.env.PORT);

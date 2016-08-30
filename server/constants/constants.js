@@ -4,7 +4,7 @@
 
 module.exports = {
     "USERS": "users",
-    "SAMPLES": "proxies",
+    "SAMPLES": "samples",
     "DEPLOYMENTS": "deployments",
     "STATUS_SUCCESS": "success",
     "STATUS_FAILURE": "failure"
