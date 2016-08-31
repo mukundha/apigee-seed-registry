@@ -6,8 +6,8 @@ var baas = require('./baas');
 var constants = require('./../constants/constants');
 var registry = require('./../registry');
 
-function createSample(entity, callback) {    
-    entity.in_registry = false    
+function createSample(entity, callback) {
+    entity.in_registry = false;
     baas.post(constants.SAMPLES, entity, callback);
 }
 

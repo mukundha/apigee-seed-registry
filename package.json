@@ -18,16 +18,15 @@
     "load-grunt-tasks": "^3.4.0"
   },
   "dependencies": {
+    "async": "*",
     "body-parser": "^1.15.2",
     "cors": "^2.7.1",
     "gulp-git": "^1.11.3",
     "jwt-decode": "^2.1.0",
-    "markdown": "^0.5.0",
-    "marked": "^0.3.6",
+    "q": "^1.4.1",
     "request": "^2.74.0",
     "rimraf": "^2.5.4",
     "shelljs": "^0.7.3",
-    "q":"*",
-    "async" : "*"
+    "showdown": "^1.4.3"
   }
 }

@@ -7,15 +7,14 @@ var app = express();
 var bodyParser = require('body-parser');
 var cors = require('cors');
 var jwtDecode = require('jwt-decode');
-var marked = require('marked');
 var fs = require('fs');
-var markdown = require("markdown").markdown;
 
 var config = require('./config/config');
 var sample = require('./server/lib/sample');
 var user = require('./server/lib/user');
 var deployment = require('./server/lib/deployment');
 var registry = require('./server/registry');
+var markdown = require('./server/lib/markdown');
 
 function isAuthenticated(req, res, next) {
     var auth = req.header("Authorization");
@@ -70,15 +69,15 @@ app.get('/samples', function (req, res) {
 });
 
 app.post('/o/:org/e/:env/samples/:sample_id', function (req, res) {
-    var token = req.get('authorization')
-    token = token.replace('Bearer ' , '')    
+    var token = req.get('authorization');
+    token = token.replace('Bearer ', '');
     sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.deploy(req.params.org, req.params.env, entities[0], token, res);    
+        registry.deploy(req.params.org, req.params.env, entities[0], token, res);
     });
 });
 
 app.post('/samples', isAuthenticated, function (req, res) {
-    var id = req.body.name.toLowerCase().replace( / /g, "-");
+    var id = req.body.name.toLowerCase().replace(/ /g, "-");
     var ent = {
         name: id,
         display_name: req.body.name,
@@ -86,9 +85,9 @@ app.post('/samples', isAuthenticated, function (req, res) {
         git_repo: req.body.gitURL,
         api_folder: req.body.apiFolder,
         user: req.body.user
-    }
-    registry.createEntry(app, ent, 
-        function (error, entity){
+    };
+    registry.createEntry(app, ent,
+        function (error, entity) {
             sample.createSample(entity, function (error, entities) {
                 if (error) {
                     res.json({error: true, response: "Application error"});
@@ -96,17 +95,7 @@ app.post('/samples', isAuthenticated, function (req, res) {
                     res.json(entity);
                 }
             });
-    });
-      
-    // var name = req.body.name;
-    // var description = req.body.description;
-    // var gitRepo = req.body.gitURL;
-    // var apiFolder = req.body.apiFolder;
-    // var user = req.body.user;
-
-    
-
-    
+        });
 });
 
 app.post('/user', isAuthenticated, function (req, res) {
@@ -158,7 +147,11 @@ app.get('/contribution-guide', function (req, res) {
     });
 });
 registry.init(app)
-    .then(function(done){console.log('Registry Initialized')}, function(err){console.log('Registry failed to initialize')})
+    .then(function (done) {
+        console.log('Registry Initialized');
+    }, function (err) {
+        console.log('Registry failed to initialize');
+    });
 app.listen(process.env.PORT);
 //TODO: Change to winston
 console.log('Listening on port ' + process.env.PORT);
