@@ -12,7 +12,7 @@ A Registry for Apigee Seed
 - Update config (Refer config/config-sample.js)
 - Run `grunt build` to fire up dev server
 - For prod, do `grunt build:prod`
-- [Dev] Open browser to [`http://localhost:5000`](http://localhost:5000)
+- [Dev] Registry will run on [`http://localhost:5000`](http://localhost:5000)
 
 ## Contributing
 
