@@ -79,6 +79,12 @@ app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, re
     });
 });
 
+app.delete('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
+    sample.fetchSample(req.params.sample_id, function (error, entities) {
+        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, "clean", res);
+    });
+});
+
 app.post('/samples', isAuthenticated, function (req, res) {
     var id = req.body.name.toLowerCase().replace(/ /g, "-");
     var ent = {
