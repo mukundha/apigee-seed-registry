@@ -23,12 +23,17 @@ function isAuthenticated(req, res, next) {
         var decoded = jwtDecode(token);
         if (decoded) {
             if (decoded.client_id == "apigee-seed") {
+                var user = {};
+                user.username = decoded.user_name;
+                user.user_id = decoded.user_id;
+                user.email = decoded.email;
+                req.user = user;
                 req.token = token;
                 next();
             } else {
                 res.status(401);
                 res.send({
-                    status: 401, response: "You are not authorized to perform this operation"
+                    status: 401, response: "Invalid token. You are not authorized to perform this operation"
                 });
             }
         } else {
@@ -68,11 +73,9 @@ app.get('/samples', function (req, res) {
     })
 });
 
-app.post('/o/:org/e/:env/samples/:sample_id', function (req, res) {
-    var token = req.get('authorization');
-    token = token.replace('Bearer ', '');
+app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
     sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.deploy(req.params.org, req.params.env, entities[0], token, res);
+        registry.deploy(req.params.org, req.params.env, entities[0], req.token, req.user, res);
     });
 });
 
@@ -99,17 +102,14 @@ app.post('/samples', isAuthenticated, function (req, res) {
 });
 
 app.post('/user', isAuthenticated, function (req, res) {
-    var name = req.body.name;
-    var user_uuid = req.body.user_uuid;
-    var email = req.body.email;
-    user.fetchUser(email, function (error, entities) {
+    user.fetchUser(req.user.email, function (error, en) {
         if (!error) {
-            if (entities.length <= 0) {
-                user.createUser(name, user_uuid, email, function (error, entities) {
+            if (en.length <= 0) {
+                user.createUser(req.user, function (error, entities) {
                     res.json(entities);
                 });
             } else {
-                user.updateUser(name, user_uuid, email, entities[0].uuid, function (error, entities) {
+                user.updateUser(req.user, en[0].uuid, function (error, entities) {
                     res.json(entities);
                 });
             }
@@ -117,27 +117,19 @@ app.post('/user', isAuthenticated, function (req, res) {
     });
 });
 
-app.get('/user', function (req, res) {
-    var email = req.body.email;
-    user.fetchUser(email, function (error, entities) {
-        res.json(entities);
+app.get('/user', isAuthenticated, function (req, res) {
+    user.fetchUser(req.user.email, function (error, entities) {
+        if (!error) {
+            res.json(entities);
+        }
     });
 });
 
-app.get('/deployments', function (req, res) {
-    deployment.getDeployments(function (error, entities) {
-        res.json(entities);
-    });
-});
-
-app.post('/deployments', isAuthenticated, function (req, res) {
+app.get('/deployments', isAuthenticated, function (req, res) {
     var proxy_id = req.body.proxy_id;
-    var org = req.body.org;
-    var env = req.body.env;
-    var appBasepath = process.cwd();
-    var username = req.body.username;
-    var pass = req.body.pass;
-    deployment.deploy(proxy_id, org, env, appBasepath, username, pass, res);
+    deployment.getDeployments(req.user.user_id, proxy_id, function (error, entities) {
+        res.json(entities);
+    });
 });
 
 app.get('/contribution-guide', function (req, res) {
@@ -146,12 +138,14 @@ app.get('/contribution-guide', function (req, res) {
         res.send(markdown.toHTML(data));
     });
 });
+
 registry.init(app)
     .then(function (done) {
         console.log('Registry Initialized');
     }, function (err) {
         console.log('Registry failed to initialize');
     });
+
 app.listen(process.env.PORT);
 //TODO: Change to winston
 console.log('Listening on port ' + process.env.PORT);

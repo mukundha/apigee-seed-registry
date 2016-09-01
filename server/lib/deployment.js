@@ -59,19 +59,32 @@ var baas = require('./baas');
 //     });
 // }
 
-function createDeployment(proxy, org, env, status, callback) {
+function buildQuery(user_id, proxy_id) {
+    if (user_id != null && proxy_id != null) {
+        return "select * where user.user_id='" + user_id + "' and proxy.uuid='" + proxy_id + "'";
+    } else if (user_id != null && proxy_id == null) {
+        return "select * where user.user_id='" + user_id + "'";
+    } else if (user_id == null && proxy_id != null) {
+        return "select * where proxy.uuid='" + user_id + "'";
+    } else {
+        return "";
+    }
+}
+
+function createDeployment(proxy, org, env, status, user, callback) {
     var data = {
         proxy: proxy,
         org: org,
         env: env,
-        status: status
+        status: status,
+        user: user
     };
 
     baas.post(constants.DEPLOYMENTS, data, callback);
 }
 
-function getDeployments(callback) {
-    baas.get(constants.DEPLOYMENTS, null, callback);
+function getDeployments(user_id, proxy_id, callback) {
+    baas.get(constants.DEPLOYMENTS, buildQuery(user_id, proxy_id), callback);
 }
 
 module.exports = {

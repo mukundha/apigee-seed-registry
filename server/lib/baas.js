@@ -46,7 +46,7 @@ module.exports = {
                 if (response.statusCode != 200)
                     callback(body);
                 else
-                    callback(null, JSON.parse(body).entities)
+                    callback(null, JSON.parse(body).entities);
             });
     },
 

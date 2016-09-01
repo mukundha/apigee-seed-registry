@@ -18,7 +18,7 @@ var markdown = require('./lib/markdown');
 var baseFolder = path.join('.', 'data');
 
 module.exports = {
-    deploy: function (org, env, sample, token, res) {
+    deploy: function (org, env, sample, token, user, res) {
         var status = constants.STATUS_SUCCESS;
         var cwd = path.join(baseFolder, sample.name, sample.api_folder);
         var cmd = 'gulp deploy --org ' + org + ' --env ' + env + ' --token ' + token;
@@ -37,7 +37,7 @@ module.exports = {
 
         deployProcess.on('exit', function (code) {
             console.log('child process exited with code ' + code.toString());
-            deployment.createDeployment(sample, org, env, constants.STATUS_SUCCESS, function (error, entities) {
+            deployment.createDeployment(sample, org, env, constants.STATUS_SUCCESS, user, function (error, entities) {
                 res.end("Deployment Completed");
             });
         });
@@ -85,7 +85,6 @@ function initSample(app, entity, callback) {
                 //TODO: Check for README.md absence
                 var readme = path.join(samplePath, 'README.md');
                 var content = markdown.toHTML(fs.readFileSync(readme).toString());
-                console.log(content);
                 entity.long_description = content;
 
                 var cmd = 'npm install';

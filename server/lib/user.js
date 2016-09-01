@@ -5,27 +5,15 @@
 var baas = require('./baas');
 var constants = require('./../constants/constants');
 
-function createUser(name, user_uuid, email, callback) {
-    var data = {
-        name: name,
-        user_uuid: user_uuid,
-        email: email
-    };
-
+function createUser(data, callback) {
     baas.post(constants.USERS, data, callback);
 }
 
 function fetchUser(email, callback) {
-    baas.get(constants.USERS, "select * where email=" + email, callback);
+    baas.get(constants.USERS, "select * where email='" + email + "'", callback);
 }
 
-function updateUser(name, user_uuid, email, id, callback) {
-    var data = {
-        name: name,
-        user_uuid: user_uuid,
-        email: email
-    };
-
+function updateUser(data, id, callback) {
     baas.put(constants.USERS, data, id, callback);
 }
 

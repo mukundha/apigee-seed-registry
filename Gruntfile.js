@@ -56,7 +56,7 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     require('load-grunt-tasks')(grunt);
 
-    grunt.registerTask('env', 'change environment to run the Angular app', function (target) {
+    grunt.registerTask('env', 'change environment to run the app', function (target) {
         target = target || 'dev';
 
         grunt.task.run([
@@ -64,7 +64,7 @@ module.exports = function (grunt) {
         ])
     });
 
-    grunt.registerTask('build', 'change environment to run the Angular app', function (target) {
+    grunt.registerTask('build', 'change environment to run the app', function (target) {
         target = target || 'dev';
 
         if (target === 'prod') {
