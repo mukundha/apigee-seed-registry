@@ -107,6 +107,26 @@ app.post('/samples', isAuthenticated, function (req, res) {
         });
 });
 
+app.delete('/samples/:sampleid',isAuthenticated, function(req,res){
+    console.log('deleting sample')
+    sample.deleteSample(req.params.sampleid, function(error, entities){
+        console.log('sample deleted')
+        if (error) {
+            res.json({error: true, response: "Application error"});
+        } else {
+           registry.deleteEntry(app, entities[0],
+                function(error,entity){
+                    if(error){
+                        res.json({error: true, response: "Application error"});        
+                    }
+                    else{
+                        res.send(entity)
+                    }
+                })
+        }
+    })
+})
+
 app.post('/user', isAuthenticated, function (req, res) {
     user.fetchUser(req.user.email, function (error, en) {
         if (!error) {

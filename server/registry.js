@@ -94,6 +94,15 @@ module.exports = {
         initSample(app, entity, callback);
     },
 
+    deleteEntry: function(app,entity, callback){
+        var clonePath = path.join(baseFolder, entity.name);
+        console.log(clonePath)
+        exec("rm -rf " + baseFolder, {}, function (err, stdin, stdout) {
+            callback(err)
+        })
+        
+    },
+
     init: function (app) {
         var d = q.defer();
 
