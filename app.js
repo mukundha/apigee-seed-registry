@@ -12,7 +12,7 @@ var fs = require('fs');
 var config = require('./config/config');
 var sample = require('./server/lib/sample');
 var user = require('./server/lib/user');
-var deployment = require('./server/lib/deployment');
+var deployment = require('./server/lib/task');
 var registry = require('./server/registry');
 var markdown = require('./server/lib/markdown');
 
@@ -75,7 +75,7 @@ app.get('/samples', function (req, res) {
 
 app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
     sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.deploy(req.params.org, req.params.env, entities[0], req.token, req.user, res);
+        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, "deploy", res);
     });
 });
 
@@ -125,9 +125,9 @@ app.get('/user', isAuthenticated, function (req, res) {
     });
 });
 
-app.get('/deployments', isAuthenticated, function (req, res) {
-    var proxy_id = req.body.proxy_id;
-    deployment.getDeployments(req.user.user_id, proxy_id, function (error, entities) {
+app.get('/tasks', isAuthenticated, function (req, res) {
+    var org = req.query.org;
+    deployment.getTasks(null, org, function (error, entities) {
         res.json(entities);
     });
 });

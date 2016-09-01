@@ -57,7 +57,7 @@ module.exports = {
                 headers: {
                     "content-type": "application/json"
                 },
-                body: data
+                body: JSON.stringify(data)
             },
             function (error, response, body) {
                 return callback(error, body != null ? body.entities : body);

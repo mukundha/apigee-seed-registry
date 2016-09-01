@@ -7,7 +7,7 @@ module.exports = function (grunt) {
         pkg: grunt.file.readJSON('package.json'),
         watch: {
             express: {
-                files: ['**/*.js'],
+                files: ['server/*.js'],
                 tasks: ['build'],
                 options: {
                     spawn: false // for grunt-contrib-watch v0.5.0+ and "nospawn: true" for lower versions

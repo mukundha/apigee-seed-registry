@@ -5,7 +5,8 @@
 module.exports = {
     "USERS": "users",
     "SAMPLES": "samples",
-    "DEPLOYMENTS": "deployments",
-    "STATUS_SUCCESS": "success",
-    "STATUS_FAILURE": "failure"
+    "TASKS": "tasks",
+    "STATUS_SUCCESS": "Success",
+    "STATUS_FAILURE": "Failure",
+    "STATUS_IN_PROGRESS": "In Progress"
 };
