@@ -17,23 +17,30 @@ var registry = require('./server/registry');
 var markdown = require('./server/lib/markdown');
 
 function isAuthenticated(req, res, next) {
-    var auth = req.header("Authorization");
-    if (auth) {
-        var token = auth.replace("Bearer ", "");
-        var decoded = jwtDecode(token);
-        if (decoded) {
-            if (decoded.client_id == "apigee-seed") {
-                var user = {};
-                user.username = decoded.user_name;
-                user.user_id = decoded.user_id;
-                user.email = decoded.email;
-                req.user = user;
-                req.token = token;
-                next();
+    try {
+        var auth = req.header("Authorization");
+        if (auth) {
+            var token = auth.replace("Bearer ", "");
+            var decoded = jwtDecode(token);
+            if (decoded) {
+                if (decoded.client_id == "apigee-seed") {
+                    var user = {};
+                    user.username = decoded.user_name;
+                    user.user_id = decoded.user_id;
+                    user.email = decoded.email;
+                    req.user = user;
+                    req.token = token;
+                    next();
+                } else {
+                    res.status(401);
+                    res.send({
+                        status: 401, response: "Invalid token. You are not authorized to perform this operation"
+                    });
+                }
             } else {
                 res.status(401);
                 res.send({
-                    status: 401, response: "Invalid token. You are not authorized to perform this operation"
+                    status: 401, response: "You are not authorized to perform this operation"
                 });
             }
         } else {
@@ -42,12 +49,14 @@ function isAuthenticated(req, res, next) {
                 status: 401, response: "You are not authorized to perform this operation"
             });
         }
-    } else {
+    } catch (exception) {
+        console.log(exception);
         res.status(401);
         res.send({
             status: 401, response: "You are not authorized to perform this operation"
         });
     }
+
 }
 
 app.use(cors());
