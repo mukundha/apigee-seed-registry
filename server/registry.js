@@ -100,7 +100,7 @@ module.exports = {
         exec("rm -rf " + baseFolder, {}, function (err, stdin, stdout) {
             callback(err)
         })
-        
+
     },
 
     init: function (app) {
@@ -141,7 +141,7 @@ function initSample(app, entity, callback) {
 
                 //TODO: Check for README.md absence
                 var readme = path.join(samplePath, 'README.md');
-                var content = markdown.toHTML(fs.readFileSync(readme).toString());
+                var content = markdown.toHTML(fs.readFileSync(readme).toString().replace(/\!\[(.)+]\((.)+\)/, ""));
                 entity.long_description = content;
 
                 var cmd = 'npm install';

@@ -64,6 +64,12 @@ app.get('/ssoconfig', function (req, res) {
     res.send({"oAuthTokenURL": config.authURL, "oAuthCallbackURL": config.oAuthCallbackURL});
 });
 
+app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
+    sample.fetchSample(req.params.sample_id, function (error, entities) {
+        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, "deploy", res);
+    });
+});
+
 app.get('/samples', function (req, res) {
     sample.fetchSamples(function (error, entities) {
         if (error) {
@@ -73,10 +79,14 @@ app.get('/samples', function (req, res) {
     })
 });
 
-app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
-    sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, "deploy", res);
-    });
+
+app.get('/samples/id/:id', function (req, res) {
+    sample.fetchSampleByName(req.params.id, function (error, entities) {
+        if (error) {
+            console.log(error);
+        }
+        res.json(entities);
+    })
 });
 
 app.delete('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
@@ -107,25 +117,25 @@ app.post('/samples', isAuthenticated, function (req, res) {
         });
 });
 
-app.delete('/samples/:sampleid',isAuthenticated, function(req,res){
-    console.log('deleting sample')
-    sample.deleteSample(req.params.sampleid, function(error, entities){
-        console.log('sample deleted')
+app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
+    console.log('deleting sample');
+    sample.deleteSample(req.params.sampleid, function (error, entities) {
+        console.log('sample deleted');
         if (error) {
             res.json({error: true, response: "Application error"});
         } else {
-           registry.deleteEntry(app, entities[0],
-                function(error,entity){
-                    if(error){
-                        res.json({error: true, response: "Application error"});        
+            registry.deleteEntry(app, entities[0],
+                function (error, entity) {
+                    if (error) {
+                        res.json({error: true, response: "Application error"});
                     }
-                    else{
+                    else {
                         res.send(entity)
                     }
                 })
         }
     })
-})
+});
 
 app.post('/user', isAuthenticated, function (req, res) {
     user.fetchUser(req.user.email, function (error, en) {
