@@ -95,9 +95,14 @@ module.exports = {
     },
 
     deleteEntry: function(app,entity, callback){
+        if(!entity || !entity.name)
+        {
+          callback("Entity not found")
+          return   
+        }
         var clonePath = path.join(baseFolder, entity.name);
         console.log(clonePath)
-        exec("rm -rf " + baseFolder, {}, function (err, stdin, stdout) {
+        exec("rm -rf " + clonePath, {}, function (err, stdin, stdout) {
             callback(err)
         })
 
@@ -141,8 +146,12 @@ function initSample(app, entity, callback) {
 
                 //TODO: Check for README.md absence
                 var readme = path.join(samplePath, 'README.md');
-                var content = markdown.toHTML(fs.readFileSync(readme).toString().replace(/\!\[(.)+]\((.)+\)/, ""));
-                entity.long_description = content;
+                try{
+                    var content = markdown.toHTML(fs.readFileSync(readme).toString().replace(/\!\[(.)+]\((.)+\)/, ""));
+                    entity.long_description = content;
+                }catch(err){
+                    console.log('readme not found')
+                }
 
                 var cmd = 'npm install';
                 var execPath = samplePath;

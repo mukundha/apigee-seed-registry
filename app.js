@@ -89,7 +89,7 @@ app.get('/samples', function (req, res) {
 });
 
 
-app.get('/samples/id/:id', function (req, res) {
+app.get('/samples/:id', function (req, res) {
     sample.fetchSampleByName(req.params.id, function (error, entities) {
         if (error) {
             console.log(error);
@@ -128,20 +128,31 @@ app.post('/samples', isAuthenticated, function (req, res) {
 
 app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
     console.log('deleting sample');
-    sample.deleteSample(req.params.sampleid, function (error, entities) {
-        console.log('sample deleted');
+    sample.deleteSample(req.params.sampleid, function (error, entities) {        
         if (error) {
+            console.log('could not delete sample')
+            console.log('error')
             res.json({error: true, response: "Application error"});
         } else {
-            registry.deleteEntry(app, entities[0],
-                function (error, entity) {
-                    if (error) {
+            console.log('sample deleted ' );
+            console.log(entities)
+            if(entities && entities[0])
+            {
+                registry.deleteEntry(app, entities[0],
+                function (rerror, entity) {
+                    if (rerror) {
+                        console.log(rerror)
                         res.json({error: true, response: "Application error"});
                     }
                     else {
+                        console.log('deleted from registry')
                         res.send(entity)
                     }
-                })
+                })    
+            }else{
+                res.json({error:true, response:'Sample Deleted, but registry cleanup failed'})
+            }
+            
         }
     })
 });
