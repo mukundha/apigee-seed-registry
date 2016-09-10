@@ -38,8 +38,8 @@ function fetchSampleByName(name, callback) {
     baas.get(constants.SAMPLES, "select * where name='" + name + "'", callback);
 }
 
-function fetchSamples(callback) {
-    baas.get(constants.SAMPLES, null, callback);
+function fetchSamples(query,callback) {
+    baas.get(constants.SAMPLES, query, callback);
 }
 
 function deleteSample(id, callback) {

@@ -80,7 +80,8 @@ app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, re
 });
 
 app.get('/samples', function (req, res) {
-    sample.fetchSamples(function (error, entities) {
+    console.log(req.query.ql)
+    sample.fetchSamples(req.query.ql,function (error, entities) {
         if (error) {
             console.log(error);
         }
