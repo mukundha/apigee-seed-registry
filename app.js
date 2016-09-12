@@ -117,13 +117,17 @@ app.post('/samples', isAuthenticated, function (req, res) {
     };
     registry.createEntry(app, ent,
         function (error, entity) {
-            sample.createSample(entity, function (error, entities) {
-                if (error) {
-                    res.json({error: true, response: "Application error"});
-                } else {
-                    res.json(entity);
-                }
-            });
+            if(!error){
+                sample.createSample(entity, function (error, entities) {
+                    if (error) {
+                        res.json({error: true, response: "Application error"});
+                    } else {
+                        res.json(entity);
+                    }
+                });
+            }else{
+                res.json({error: true, response: "Application error"});
+            }
         });
 });
 
