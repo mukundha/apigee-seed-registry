@@ -54,7 +54,7 @@ module.exports = {
         });
     },
 
-    performTask: function (org, env, sample, token, user, task_cmd, res) {
+    performTask: function (org, env, sample, token, user, body, task_cmd, res) {
         var status = constants.STATUS_IN_PROGRESS;
 
         task.createTask(sample, org, env, status, user, task_cmd.toUpperCase(), function (error, entities) {
@@ -63,7 +63,15 @@ module.exports = {
 
                 var task_id = entities[0].uuid;
                 var cwd = path.join(baseFolder, sample.name, sample.api_folder);
-                var cmd = 'gulp ' + task_cmd + ' --org ' + org + ' --env ' + env + ' --token ' + token;
+                body.org = org
+                body.env = env
+                body.token = token
+                var cmd_str = ''
+                for(var k in body){
+                    cmd_str+= '--' + k
+                    cmd_str+= ' ' + body[k] + ' '
+                }
+                var cmd = 'gulp ' + task_cmd + ' ' + cmd_str;
                 var deployProcess = exec(cmd, {cwd: cwd});
 
                 deployProcess.stdout.on('data', function (data) {

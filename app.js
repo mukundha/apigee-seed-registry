@@ -73,9 +73,11 @@ app.get('/ssoconfig', function (req, res) {
     res.send({"oAuthTokenURL": config.authURL, "oAuthCallbackURL": config.oAuthCallbackURL});
 });
 
-app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
+//deploy 
+//pass env variables in body
+app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {    
     sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, "deploy", res);
+        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, req.body, "deploy", res);
     });
 });
 
@@ -113,7 +115,8 @@ app.post('/samples', isAuthenticated, function (req, res) {
         description: req.body.description,
         git_repo: req.body.gitURL,
         api_folder: req.body.apiFolder,
-        user: req.body.user
+        user: req.body.user,
+        envVars: req.body.envVars
     };
     registry.createEntry(app, ent,
         function (error, entity) {
