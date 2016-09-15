@@ -73,9 +73,9 @@ app.get('/ssoconfig', function (req, res) {
     res.send({"oAuthTokenURL": config.authURL, "oAuthCallbackURL": config.oAuthCallbackURL});
 });
 
-//deploy 
+//deploy
 //pass env variables in body
-app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {    
+app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
     sample.fetchSample(req.params.sample_id, function (error, entities) {
         registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, req.body, "deploy", res);
     });
@@ -93,6 +93,7 @@ app.get('/samples', function (req, res) {
 
 
 app.get('/samples/:id', function (req, res) {
+    console.log(req.params.id);
     sample.fetchSampleByName(req.params.id, function (error, entities) {
         if (error) {
             console.log(error);
@@ -136,7 +137,7 @@ app.post('/samples', isAuthenticated, function (req, res) {
 
 app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
     console.log('deleting sample');
-    sample.deleteSample(req.params.sampleid, function (error, entities) {        
+    sample.deleteSample(req.params.sampleid, function (error, entities) {
         if (error) {
             console.log('could not delete sample')
             console.log('error')
@@ -156,11 +157,11 @@ app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
                         console.log('deleted from registry')
                         res.send(entity)
                     }
-                })    
+                })
             }else{
                 res.json({error:true, response:'Sample Deleted, but registry cleanup failed'})
             }
-            
+
         }
     })
 });
@@ -192,6 +193,14 @@ app.get('/user', isAuthenticated, function (req, res) {
 app.get('/tasks', isAuthenticated, function (req, res) {
     var org = req.query.org;
     deployment.getTasks(null, org, function (error, entities) {
+        res.json(entities);
+    });
+});
+
+app.get('/task/:sampleid', isAuthenticated, function (req, res) {
+    var org = req.query.org;
+    var sample_id = req.query.sampleid;
+    deployment.getTasks(sample_id, org, function (error, entities) {
         res.json(entities);
     });
 });

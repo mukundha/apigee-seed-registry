@@ -9,13 +9,25 @@ var path = require('path');
 var exec = require('child_process').exec;
 var q = require('q');
 var async = require('async');
+var firebase = require("firebase");
 
 var constants = require('./constants/constants');
 var task = require('./lib/task');
 var baas = require('./lib/baas');
 var markdown = require('./lib/markdown');
+var firebaseConfig = require('../config/firebase-config.json');
 
 var baseFolder = path.join('.', 'data');
+
+firebase.initializeApp({
+    serviceAccount: firebaseConfig,
+    databaseURL: "https://apigee-seed.firebaseio.com"
+});
+
+var db = firebase.database();
+var ref = db.ref("registry");
+
+var tasksRef = ref.child("tasks");
 
 module.exports = {
     deploy: function (org, env, sample, token, user, res) {
@@ -24,26 +36,49 @@ module.exports = {
         task.createTask(sample, org, env, status, user, "Deploy", function (error, entities) {
             if (!error) {
                 var status = constants.STATUS_SUCCESS;
-
                 var task_id = entities[0].uuid;
+                var stacktrace = "------ Deployment Initiated ------";
+
+                var currTaskRef = tasksRef.child(org + "-" + env);
+                currTaskRef.set({
+                    status: constants.STATUS_IN_PROGRESS,
+                    uuid: task_id,
+                    sample_id: sample.uuid,
+                    stacktrace: stacktrace
+                });
+
                 var cwd = path.join(baseFolder, sample.name, sample.api_folder);
                 var cmd = 'gulp deploy --org ' + org + ' --env ' + env + ' --token ' + token;
                 var deployProcess = exec(cmd, {cwd: cwd});
 
                 deployProcess.stdout.on('data', function (data) {
                     console.log(data);
+                    stacktrace = stacktrace + "\n" + data;
+                    currTaskRef.set({
+                        stacktrace: stacktrace
+                    });
                     res.write(data);
                 });
 
                 deployProcess.stderr.on('data', function (data) {
                     console.log('ERR: ' + data.toString());
                     status = constants.STATUS_FAILURE;
+                    stacktrace = stacktrace + "\n" + data.toString();
+                    currTaskRef.set({
+                        status: constants.STATUS_FAILURE,
+                        stacktrace: stacktrace
+                    });
                     res.write("ERR: " + data.toString());
                 });
 
                 deployProcess.on('exit', function (code) {
                     console.log('Child process exited with code ' + code.toString());
                     task.updateTask(sample, org, env, status, user, "Deploy", task_id, function (error, entities) {
+                        stacktrace = stacktrace + "\n------ Deployment Completed ------";
+                        currTaskRef.set({
+                            status: constants.STATUS_SUCCESS,
+                            stacktrace: stacktrace
+                        });
                         res.end("Deployment Completed");
                     });
                 });
@@ -60,34 +95,71 @@ module.exports = {
         task.createTask(sample, org, env, status, user, task_cmd.toUpperCase(), function (error, entities) {
             if (!error) {
                 var status = constants.STATUS_SUCCESS;
-
                 var task_id = entities[0].uuid;
+
+                console.log(sample);
+
+                var stacktrace = "------ " + task_cmd + " Initiated ------";
+
+                var currTaskRef = tasksRef.child(org + "-" + env + "/" + task_id);
+                currTaskRef.set({
+                    desc: "Task " + task_cmd + " initiated",
+                    status: constants.STATUS_IN_PROGRESS,
+                    sample_id: sample.uuid,
+                    sample_name: sample.display_name,
+                    stacktrace: stacktrace
+                });
+
                 var cwd = path.join(baseFolder, sample.name, sample.api_folder);
-                body.org = org
-                body.env = env
-                body.token = token
-                var cmd_str = ''
-                for(var k in body){
-                    cmd_str+= '--' + k
-                    cmd_str+= ' ' + body[k] + ' '
+                body.org = org;
+                body.env = env;
+                body.token = token;
+                var cmd_str = '';
+                for (var k in body) {
+                    cmd_str += '--' + k;
+                    cmd_str += ' ' + body[k] + ' ';
                 }
                 var cmd = 'gulp ' + task_cmd + ' ' + cmd_str;
                 var deployProcess = exec(cmd, {cwd: cwd});
 
                 deployProcess.stdout.on('data', function (data) {
                     console.log(data.toString());
+                    stacktrace = stacktrace + "\n" + data.toString();
+                    currTaskRef.set({
+                        desc: "Task " + task_cmd + " in progress",
+                        status: constants.STATUS_IN_PROGRESS,
+                        sample_id: sample.uuid,
+                        sample_name: sample.display_name,
+                        stacktrace: stacktrace
+                    });
                     res.write(data.toString());
                 });
 
                 deployProcess.stderr.on('data', function (data) {
                     console.log('ERR: ' + data.toString());
                     status = constants.STATUS_FAILURE;
+                    stacktrace = stacktrace + "\n" + data.toString();
+                    currTaskRef.set({
+                        desc: "Task " + task_cmd + " failed",
+                        status: constants.STATUS_FAILURE,
+                        sample_id: sample.uuid,
+                        sample_name: sample.display_name,
+                        stacktrace: stacktrace
+                    });
                     res.write("ERR: " + data.toString());
                 });
 
                 deployProcess.on('exit', function (code) {
                     console.log('Task exited with code ' + code.toString());
                     task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
+                        stacktrace = stacktrace + "\n------ " + task_cmd + " Completed ------";
+                        currTaskRef.set({
+                            desc: "Task " + task_cmd + " success",
+                            status: constants.STATUS_SUCCESS,
+                            sample_id: sample.uuid,
+                            sample_name: sample.display_name,
+                            stacktrace: stacktrace
+                        });
                         res.end("Task - " + task_cmd.toUpperCase() + " Completed");
                     });
                 });
@@ -102,14 +174,13 @@ module.exports = {
         initSample(app, entity, callback);
     },
 
-    deleteEntry: function(app,entity, callback){
-        if(!entity || !entity.name)
-        {
-          callback("Entity not found")
-          return   
+    deleteEntry: function (app, entity, callback) {
+        if (!entity || !entity.name) {
+            callback("Entity not found");
+            return
         }
         var clonePath = path.join(baseFolder, entity.name);
-        console.log(clonePath)
+        console.log(clonePath);
         exec("rm -rf " + clonePath, {}, function (err, stdin, stdout) {
             callback(err)
         })
@@ -154,10 +225,10 @@ function initSample(app, entity, callback) {
 
                 //TODO: Check for README.md absence
                 var readme = path.join(samplePath, 'README.md');
-                try{
+                try {
                     var content = markdown.toHTML(fs.readFileSync(readme).toString().replace(/\!\[(.)+]\((.)+\)/, ""));
                     entity.long_description = content;
-                }catch(err){
+                } catch (err) {
                     console.log('readme not found')
                 }
 

@@ -6,12 +6,12 @@ var proxy = require('./sample');
 var baas = require('./baas');
 var constants = require('./../constants/constants');
 
-function buildQuery(user_id, org) {
-    if (user_id != null && org != null) {
-        return "select * where user.user_id='" + user_id + "' and org='" + org + "'";
-    } else if (user_id != null && org == null) {
-        return "select * where user.user_id='" + user_id + "'";
-    } else if (user_id == null && org != null) {
+function buildQuery(sample_id, org) {
+    if (sample_id != null && org != null) {
+        return "select * where sample.uuid='" + sample_id + "' and org='" + org + "'";
+    } else if (sample_id != null && org == null) {
+        return "select * where sample.uuid='" + sample_id + "'";
+    } else if (sample_id == null && org != null) {
         return "select * where org='" + org + "'";
     } else {
         return "";
@@ -44,8 +44,8 @@ function updateTask(sample, org, env, status, user, type, id, callback) {
     baas.put(constants.TASKS, data, id, callback);
 }
 
-function getTasks(user_id, org, callback) {
-    baas.get(constants.TASKS, buildQuery(user_id, org), callback);
+function getTasks(sample_id, org, callback) {
+    baas.get(constants.TASKS, buildQuery(sample_id, org), callback);
 }
 
 module.exports = {

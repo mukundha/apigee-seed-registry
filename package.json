@@ -21,6 +21,7 @@
     "async": "*",
     "body-parser": "^1.15.2",
     "cors": "^2.7.1",
+    "firebase": "^3.4.0",
     "gulp-git": "^1.11.3",
     "jwt-decode": "^2.1.0",
     "q": "^1.4.1",
