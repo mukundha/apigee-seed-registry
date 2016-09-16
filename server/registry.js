@@ -111,6 +111,7 @@ module.exports = {
                 });
 
                 var cwd = path.join(baseFolder, sample.name, sample.api_folder);
+                console.log(body)
                 body.org = org;
                 body.env = env;
                 body.token = token;
@@ -121,7 +122,7 @@ module.exports = {
                 }
                 var cmd = 'gulp ' + task_cmd + ' ' + cmd_str;
                 var deployProcess = exec(cmd, {cwd: cwd});
-
+                console.log('running ' + cmd)
                 deployProcess.stdout.on('data', function (data) {
                     console.log(data.toString());
                     stacktrace = stacktrace + "\n" + data.toString();
