@@ -34,7 +34,7 @@
     "gulp-tar":"*",
     "gulp-gzip":"*",
     "tar-fs":"*",
-    "dockerode":"*"
-
+    "dockerode":"*",
+    "express-http-proxy":"*"
   }
 }

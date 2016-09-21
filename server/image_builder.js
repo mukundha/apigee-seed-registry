@@ -41,8 +41,7 @@ function dockerRun(image,action,opts,res){
 				})
 			}
 		})	
-	})
-	
+	})	
 }
 
 function buildAndAdd(data){

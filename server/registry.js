@@ -31,64 +31,6 @@ var ref = db.ref("registry");
 var tasksRef = ref.child("tasks");
 
 module.exports = {
-    deploy: function (org, env, sample, token, user, res) {
-        var status = constants.STATUS_IN_PROGRESS;
-
-        task.createTask(sample, org, env, status, user, "Deploy", function (error, entities) {
-            if (!error) {
-                var status = constants.STATUS_SUCCESS;
-                var task_id = entities[0].uuid;
-                var stacktrace = "------ Deployment Initiated ------";
-
-                var currTaskRef = tasksRef.child(org + "-" + env);
-                currTaskRef.set({
-                    status: constants.STATUS_IN_PROGRESS,
-                    uuid: task_id,
-                    sample_id: sample.uuid,
-                    stacktrace: stacktrace
-                });
-
-                var cwd = path.join(baseFolder, sample.name, sample.api_folder);
-                var cmd = 'gulp deploy --org ' + org + ' --env ' + env + ' --token ' + token;
-                var deployProcess = exec(cmd, {cwd: cwd});
-
-                deployProcess.stdout.on('data', function (data) {
-                    console.log(data);
-                    stacktrace = stacktrace + "\n" + data;
-                    currTaskRef.set({
-                        stacktrace: stacktrace
-                    });
-                    res.write(data);
-                });
-
-                deployProcess.stderr.on('data', function (data) {
-                    console.log('ERR: ' + data.toString());
-                    status = constants.STATUS_FAILURE;
-                    stacktrace = stacktrace + "\n" + data.toString();
-                    currTaskRef.set({
-                        status: constants.STATUS_FAILURE,
-                        stacktrace: stacktrace
-                    });
-                    res.write("ERR: " + data.toString());
-                });
-
-                deployProcess.on('exit', function (code) {
-                    console.log('Child process exited with code ' + code.toString());
-                    task.updateTask(sample, org, env, status, user, "Deploy", task_id, function (error, entities) {
-                        stacktrace = stacktrace + "\n------ Deployment Completed ------";
-                        currTaskRef.set({
-                            status: constants.STATUS_SUCCESS,
-                            stacktrace: stacktrace
-                        });
-                        res.end("Deployment Completed");
-                    });
-                });
-
-            } else {
-                res.end("ERR: Deployment Failed - " + error);
-            }
-        });
-    },
 
     performTask: function (org, env, sample, token, user, body, task_cmd, res) {
         var status = constants.STATUS_IN_PROGRESS;
@@ -97,9 +39,7 @@ module.exports = {
             if (!error) {
                 var status = constants.STATUS_SUCCESS;
                 var task_id = entities[0].uuid;
-
                 console.log(sample);
-
                 var stacktrace = "------ " + task_cmd + " Initiated ------";
 
                 var currTaskRef = tasksRef.child(org + "-" + env + "/" + task_id);
@@ -151,7 +91,7 @@ module.exports = {
     },
 
     createEntry: function (app, entity, callback) {                
-        var data = { repo: entity.git_repo, name: entity.name }
+        var data = { repo: entity.git_repo, name: entity.name, apifolder: entity.api_folder }
         image_builder.buildAndAdd(data)
             .then(function(){console.log('All done')},
                 function(err){console.log(err)})
@@ -163,20 +103,13 @@ module.exports = {
             callback("Entity not found");
             return
         }
-        var clonePath = path.join(baseFolder, entity.name);
-        console.log(clonePath);
-        exec("rm -rf " + clonePath, {}, function (err, stdin, stdout) {
-            callback(err)
-        })
-
+        callback(null)
     },
 
     init: function (app) {
         var d = q.defer();
         console.log("Removing " + baseFolder + " folder");
-
-        exec("rm -rf " + baseFolder, {}, function (err, stdin, stdout) {
-            baas.get(constants.SAMPLES, undefined, function (err, body) {
+        baas.get(constants.SAMPLES, undefined, function (err, body) {
                 if (err) {
                     d.reject(err, body);
                 } else {
@@ -191,33 +124,37 @@ module.exports = {
                         d.resolve();
                     })
                 }
-            });
-        });
+        });        
         return d.promise;
     }
 };
 
 function initSample(app, entity, callback) {
     var clonePath = path.join(baseFolder, entity.name);
-    git.clone(entity.git_repo, {args: clonePath},
-        function (gitError) {
-            if (!gitError) {
-                var samplePath = path.join(clonePath, entity.api_folder);
-                //TODO: Check for README.md absence
-                var readme = path.join(samplePath, 'README.md');
-                try {
-                    var content = markdown.toHTML(fs.readFileSync(readme).toString().replace(/\!\[(.)+]\((.)+\)/, ""));
-                    entity.long_description = content;
-                } catch (err) {
-                    console.log('readme not found')
-                }
-                var testPath = '/v1/o/:org/e/:env/samples/' + entity.name + '/tests';
-                console.log("Registering " + samplePath + '/test with express router..');
-                app.use(testPath, express.static(samplePath + '/test'));
-                callback(false, entity);                
-            } else {
-                console.log(gitError);
-                callback(true, gitError);
+    var REGEX_REPO_URL = /^(https?):\/\/github\.com\/(.[^\/]+?)\/(.[^\/]+?)\/(?!releases\/)(?:(?:blob|raw)\/)?(.+?\/.+)/i;
+    var devDomain = 'rawgit.com'
+    var tests_url = repo + path.join( '/blob/master/' ,  apifolder ,'/test')    
+    var tests_proxyPath = tests_url.replace(REGEX_REPO_URL,'/$2/$3/$4')
+
+    var testPath = '/v1/o/:org/e/:env/samples/' + entity.name + '/tests';
+    console.log("Registering " + samplePath + '/test with express router..');
+    app.use(testPath, proxy(devDomain,{
+        forwardPath: function(req, res) {            
+            return path + req.url
+        }
+    }));    
+    try {
+        var readmeurl = repo + path.join('/blob/master/', apifolder , 'README.md')
+        var readme_newurl = readmeurl.replace(REGEX_REPO_URL, 'https://' + devDomain + '/$2/$3/$4');
+        request(readmeurl,function(error,response,body){
+            if (!error && response.statusCode == 200) {
+                var content = markdown.toHTML(body)
+                entity.long_description = content;
             }
-        });
+            callback(false, entity);
+        })        
+    } catch (err) {
+        console.log('readme not found')
+        callback(true, err);
+    }  
 }
