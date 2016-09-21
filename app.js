@@ -15,7 +15,7 @@ var user = require('./server/lib/user');
 var deployment = require('./server/lib/task');
 var registry = require('./server/registry');
 var markdown = require('./server/lib/markdown');
-var proxy = require('express-http-proxy');
+
 
 function isAuthenticated(req, res, next) {
     try {

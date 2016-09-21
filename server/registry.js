@@ -3,6 +3,8 @@
  */
 
 var express = require('express');
+var proxy = require('express-http-proxy');
+
 var git = require('gulp-git');
 var fs = require('fs');
 var path = require('path');
@@ -133,18 +135,20 @@ function initSample(app, entity, callback) {
     var clonePath = path.join(baseFolder, entity.name);
     var REGEX_REPO_URL = /^(https?):\/\/github\.com\/(.[^\/]+?)\/(.[^\/]+?)\/(?!releases\/)(?:(?:blob|raw)\/)?(.+?\/.+)/i;
     var devDomain = 'rawgit.com'
-    var tests_url = repo + path.join( '/blob/master/' ,  apifolder ,'/test')    
+    var tests_url = entity.git_repo + path.join( '/blob/master/' ,  entity.api_folder ,'/test')    
     var tests_proxyPath = tests_url.replace(REGEX_REPO_URL,'/$2/$3/$4')
 
     var testPath = '/v1/o/:org/e/:env/samples/' + entity.name + '/tests';
-    console.log("Registering " + samplePath + '/test with express router..');
+    console.log("Registering " + entity.name + ' tests with express router..');
     app.use(testPath, proxy(devDomain,{
-        forwardPath: function(req, res) {            
-            return path + req.url
+        forwardPath: function(req, res) { 
+            console.log('test request received')
+            console.log(tests_proxyPath+req.url)           
+            return tests_proxyPath + req.url
         }
     }));    
     try {
-        var readmeurl = repo + path.join('/blob/master/', apifolder , 'README.md')
+        var readmeurl = entity.git_repo + path.join('/blob/master/', entity.api_folder , 'README.md')
         var readme_newurl = readmeurl.replace(REGEX_REPO_URL, 'https://' + devDomain + '/$2/$3/$4');
         request(readmeurl,function(error,response,body){
             if (!error && response.statusCode == 200) {
@@ -155,6 +159,6 @@ function initSample(app, entity, callback) {
         })        
     } catch (err) {
         console.log('readme not found')
-        callback(true, err);
+        callback(false, entity);
     }  
 }
