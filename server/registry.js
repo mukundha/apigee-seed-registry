@@ -18,6 +18,7 @@ var markdown = require('./lib/markdown');
 var firebaseConfig = require('../config/firebase-config.json');
 
 var baseFolder = path.join('.', 'data');
+var image_builder = require('./image_builder')
 
 firebase.initializeApp({
     serviceAccount: firebaseConfig,
@@ -115,44 +116,10 @@ module.exports = {
                 body.org = org;
                 body.env = env;
                 body.token = token;
-                var cmd_str = '';
-                for (var k in body) {
-                    cmd_str += '--' + k;
-                    cmd_str += ' ' + body[k] + ' ';
-                }
-                var cmd = 'gulp ' + task_cmd + ' ' + cmd_str;
-                var deployProcess = exec(cmd, {cwd: cwd});
-                console.log('running ' + cmd)
-                deployProcess.stdout.on('data', function (data) {
-                    console.log(data.toString());
-                    stacktrace = stacktrace + "\n" + data.toString();
-                    currTaskRef.set({
-                        desc: "Task " + task_cmd + " in progress",
-                        status: constants.STATUS_IN_PROGRESS,
-                        sample_id: sample.uuid,
-                        sample_name: sample.display_name,
-                        stacktrace: stacktrace
-                    });
-                    res.write(data.toString());
-                });
-
-                deployProcess.stderr.on('data', function (data) {
-                    console.log('ERR: ' + data.toString());
-                    status = constants.STATUS_FAILURE;
-                    stacktrace = stacktrace + "\n" + data.toString();
-                    currTaskRef.set({
-                        desc: "Task " + task_cmd + " failed",
-                        status: constants.STATUS_FAILURE,
-                        sample_id: sample.uuid,
-                        sample_name: sample.display_name,
-                        stacktrace: stacktrace
-                    });
-                    res.write("ERR: " + data.toString());
-                });
-
-                deployProcess.on('exit', function (code) {
-                    console.log('Task exited with code ' + code.toString());
-                    task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
+                image_builder.dockerRun('apigeeseed/' + sample.name ,task_cmd,body, res )
+                    .then(function(){
+                        console.log('run success')
+                        task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
                         stacktrace = stacktrace + "\n------ " + task_cmd + " Completed ------";
                         currTaskRef.set({
                             desc: "Task " + task_cmd + " success",
@@ -162,17 +129,33 @@ module.exports = {
                             stacktrace: stacktrace
                         });
                         res.end("Task - " + task_cmd.toUpperCase() + " Completed");
-                    });
-                });
-
+                        });
+                    },function(err){
+                        console.log('docker run failed')
+                        task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
+                        stacktrace = stacktrace + "\n------ " + task_cmd + " Completed ------";
+                        currTaskRef.set({
+                            desc: "Task " + task_cmd + " success",
+                            status: constants.STATUS_FAILURE,
+                            sample_id: sample.uuid,
+                            sample_name: sample.display_name,
+                            stacktrace: stacktrace
+                        });
+                        res.end("Task - " + task_cmd.toUpperCase() + " Completed");
+                        });
+                    })
             } else {
                 res.end("ERR: Task - " + task_cmd.toUpperCase() + " Failed" + error.toString());
             }
         });
     },
 
-    createEntry: function (app, entity, callback) {
-        initSample(app, entity, callback);
+    createEntry: function (app, entity, callback) {                
+        var data = { repo: entity.git_repo, name: entity.name }
+        image_builder.buildAndAdd(data)
+            .then(function(){console.log('All done')},
+                function(err){console.log(err)})
+        initSample(app,entity,callback)
     },
 
     deleteEntry: function (app, entity, callback) {
@@ -190,7 +173,6 @@ module.exports = {
 
     init: function (app) {
         var d = q.defer();
-
         console.log("Removing " + baseFolder + " folder");
 
         exec("rm -rf " + baseFolder, {}, function (err, stdin, stdout) {
@@ -211,19 +193,16 @@ module.exports = {
                 }
             });
         });
-
         return d.promise;
     }
 };
 
 function initSample(app, entity, callback) {
     var clonePath = path.join(baseFolder, entity.name);
-
     git.clone(entity.git_repo, {args: clonePath},
         function (gitError) {
             if (!gitError) {
                 var samplePath = path.join(clonePath, entity.api_folder);
-
                 //TODO: Check for README.md absence
                 var readme = path.join(samplePath, 'README.md');
                 try {
@@ -232,23 +211,10 @@ function initSample(app, entity, callback) {
                 } catch (err) {
                     console.log('readme not found')
                 }
-
-                var cmd = 'npm install';
-                var execPath = samplePath;
-
-                exec(cmd, {cwd: execPath}, function (execError, stdin, stdout) {
-                    if (!execError) {
-                        console.log('npm install success');
-                        var testPath = '/v1/o/:org/e/:env/samples/' + entity.name + '/tests';
-                        console.log("Registering " + samplePath + '/test with express router..');
-                        app.use(testPath, express.static(samplePath + '/test'));
-                        callback(false, entity);
-                    }
-                    else {
-                        console.log(execError);
-                        callback(true, execError);
-                    }
-                });
+                var testPath = '/v1/o/:org/e/:env/samples/' + entity.name + '/tests';
+                console.log("Registering " + samplePath + '/test with express router..');
+                app.use(testPath, express.static(samplePath + '/test'));
+                callback(false, entity);                
             } else {
                 console.log(gitError);
                 callback(true, gitError);

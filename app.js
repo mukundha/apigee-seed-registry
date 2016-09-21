@@ -121,8 +121,12 @@ app.post('/samples', isAuthenticated, function (req, res) {
     };
     registry.createEntry(app, ent,
         function (error, entity) {
+            console.log('registry.createEntry done')
+            console.log(error)
             if(!error){
                 sample.createSample(entity, function (error, entities) {
+                    console.log('createSample in baas done')
+                    console.log(error)
                     if (error) {
                         res.json({error: true, response: "Application error"});
                     } else {
@@ -168,7 +172,7 @@ app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
 
 app.post('/user', isAuthenticated, function (req, res) {
     user.fetchUser(req.user.email, function (error, en) {
-        if (!error) {
+        if (!error && en) {
             if (en.length <= 0) {
                 user.createUser(req.user, function (error, entities) {
                     res.json(entities);
@@ -218,6 +222,7 @@ registry.init(app)
     }, function (err) {
         console.log('Registry failed to initialize');
     });
+
 
 app.listen(process.env.PORT);
 //TODO: Change to winston
