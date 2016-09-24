@@ -10,37 +10,52 @@ const gzip = require('gulp-gzip');
 
 var config = require('../config/config')
 var docker_prefix = config.dockerPrefix
-var docker = new Docker(
-  {
-  	host: config.dockerHost, 
-  	port: config.dockerPort,
-  	ca: fs.readFileSync(config.dockerCaFile),
-  	cert: fs.readFileSync(config.dockerCertFile),
-  	key: fs.readFileSync(config.dockerKeyFile)
-  }
-);
+var docker = new Docker({socketPath: '/var/run/docker.sock'});
+
+// var docker = new Docker(
+//   {
+//   	host: config.dockerHost, 
+//   	port: config.dockerPort,
+//   	ca: fs.readFileSync(config.dockerCaFile),
+//   	cert: fs.readFileSync(config.dockerCertFile),
+//   	key: fs.readFileSync(config.dockerKeyFile)
+//   }
+// );
 function dockerRun(image,action,opts,res){
 	return new Promise(function(resolve,reject){
-		var cmd_str= [action]
-		for (var k in opts) {
-			cmd_str.push( '--' + k);
-			cmd_str.push(opts[k]);
-	    }
-	    console.log(cmd_str)
-		docker.run(image, cmd_str, [res],function(err,data,container){			
-			if(err) reject(err)
-			else{	
-				container.wait(function(cerr,cdata){
-					if(!err){
-						console.log('docker run success')
-						resolve(data)
-					}else{
-						console.log(cerr)
-						reject(err)
+		docker.pull(image, {authconfig:config.dockerAuthConfig},function(err, stream) {			
+			if(!err)
+			{
+				stream.pipe(process.stdout)
+
+				stream.on('end',function(){
+					var cmd_str= [action]
+					for (var k in opts) {
+						cmd_str.push( '--' + k);
+						cmd_str.push(opts[k]);
+				    }
+			    	console.log(cmd_str)
+			    	docker.run(image, cmd_str, [res],function(err,data,container){			
+					if(err) reject(err)
+					else{	
+						container.wait(function(cerr,cdata){
+							if(!err){
+								console.log('docker run success')
+								resolve(data)
+							}else{
+								console.log(cerr)
+								reject(err)
+							}
+						})
 					}
+					})	
+
 				})
+			}else{
+				console.log(err)
+				reject(err)
 			}
-		})	
+	})
 	})	
 }
 

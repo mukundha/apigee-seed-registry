@@ -18,9 +18,10 @@ var task = require('./lib/task');
 var baas = require('./lib/baas');
 var markdown = require('./lib/markdown');
 var firebaseConfig = require('../config/firebase-config.json');
-
+var config = require('../config/config.js')
 var baseFolder = path.join('.', 'data');
 var image_builder = require('./image_builder')
+var request = require('request')
 
 firebase.initializeApp({
     serviceAccount: firebaseConfig,
@@ -58,7 +59,7 @@ module.exports = {
                 body.org = org;
                 body.env = env;
                 body.token = token;
-                image_builder.dockerRun('apigeeseed/' + sample.name ,task_cmd,body, res )
+                image_builder.dockerRun(config.dockerPrefix + sample.name ,task_cmd,body, res )
                     .then(function(){
                         console.log('run success')
                         task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
@@ -73,6 +74,7 @@ module.exports = {
                         res.end("Task - " + task_cmd.toUpperCase() + " Completed");
                         });
                     },function(err){
+                        console.log(err)
                         console.log('docker run failed')
                         task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
                         stacktrace = stacktrace + "\n------ " + task_cmd + " Completed ------";
@@ -149,16 +151,17 @@ function initSample(app, entity, callback) {
     }));    
     try {
         var readmeurl = entity.git_repo + path.join('/blob/master/', entity.api_folder , 'README.md')
-        var readme_newurl = readmeurl.replace(REGEX_REPO_URL, 'https://' + devDomain + '/$2/$3/$4');
-        request(readmeurl,function(error,response,body){
+        var readme_newurl = readmeurl.replace(REGEX_REPO_URL, 'https://' + devDomain + '/$2/$3/$4');        
+        request(readme_newurl,function(error,response,body){
             if (!error && response.statusCode == 200) {
                 var content = markdown.toHTML(body)
-                entity.long_description = content;
+                entity.long_description = content;                
             }
             callback(false, entity);
         })        
     } catch (err) {
         console.log('readme not found')
+        console.log(err)
         callback(false, entity);
     }  
 }

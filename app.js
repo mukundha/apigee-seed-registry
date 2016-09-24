@@ -70,16 +70,20 @@ app.get('/handshake', isAuthenticated, function (req, res) {
     res.json({"response": "all_ok"});
 });
 
-app.get('/ssoconfig', function (req, res) {
-    res.send({"oAuthTokenURL": config.authURL, "oAuthCallbackURL": config.oAuthCallbackURL});
-});
-
-//deploy
-//pass env variables in body
+//deploy method
 app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
-    sample.fetchSample(req.params.sample_id, function (error, entities) {
-        registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, req.body, "deploy", res);
-    });
+    if(req.params.sample_id  && req.params.sample_id !='undefined')
+    {
+        sample.fetchSample(req.params.sample_id, function (error, entities) {
+            if(!error){
+                registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, req.body, "deploy", res);
+            }else{
+                res.end('Sample ' +req.params.sample_id+' not found' );
+            }
+        });
+    }else{
+        res.end('Sample is undefined, pls refresh your page' );
+    }
 });
 
 app.get('/samples', function (req, res) {
