@@ -5,6 +5,7 @@
 module.exports = {
     "USERS": "users",
     "SAMPLES": "samples",
+    "ADMINS": "admins",
     "TASKS": "tasks",
     "STATUS_SUCCESS": "Success",
     "STATUS_FAILURE": "Failure",

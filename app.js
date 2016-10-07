@@ -15,6 +15,9 @@ var user = require('./server/lib/user');
 var deployment = require('./server/lib/task');
 var registry = require('./server/registry');
 var markdown = require('./server/lib/markdown');
+var baas = require('./server/lib/baas');
+var constants = require('./server/constants/constants');
+
 
 function isAuthenticated(req, res, next) {
     try {
@@ -117,6 +120,7 @@ app.post('/samples', isAuthenticated, function (req, res) {
         description: req.body.description,
         git_repo: req.body.gitURL,
         api_folder: req.body.apiFolder,
+        sample_type: req.body.sample_type,
         user: req.body.user,
         type: req.body.type,
         envVars: req.body.envVars
@@ -124,31 +128,31 @@ app.post('/samples', isAuthenticated, function (req, res) {
     registry.createEntry(app, ent,
         function (error, entity) {
             console.log('registry.createEntry done');
-            console.log(error);
             if (!error) {
                 sample.createSample(entity, function (error, entities) {
                     console.log('createSample in baas done');
-                    console.log(error);
                     if (error) {
+                        console.log(error);
                         res.json({error: true, response: "Application error"});
                     } else {
                         res.json(entity);
                     }
                 });
             } else {
+                console.log(error);
                 res.json({error: true, response: "Application error"});
             }
         });
 });
 
 app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
-    console.log('deleting sample');
+    console.log('Deleting sample');
     sample.deleteSample(req.params.sampleid, function (error, entities) {
         if (error) {
             console.log('Could not delete sample');
             res.json({error: true, response: "Application error"});
         } else {
-            console.log('Sample deleted ');
+            console.log('Sample deleted');
             console.log(entities);
             if (entities && entities[0]) {
                 registry.deleteEntry(app, entities[0],
@@ -183,6 +187,12 @@ app.post('/user', isAuthenticated, function (req, res) {
                 });
             }
         }
+    });
+});
+
+app.get('/admins', isAuthenticated, function (req, res) {
+    baas.get(constants.ADMINS, "", function (error, body) {
+        res.json(body);
     });
 });
 
