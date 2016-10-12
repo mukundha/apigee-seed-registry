@@ -16,6 +16,8 @@ var user = require('./server/lib/user');
 var deployment = require('./server/lib/task');
 var registry = require('./server/registry');
 var markdown = require('./server/lib/markdown');
+var baas = require('./server/lib/baas');
+var constants = require('./server/constants/constants');
 
 
 function isAuthenticated(req, res, next) {
@@ -73,23 +75,21 @@ app.get('/handshake', isAuthenticated, function (req, res) {
 
 //deploy method
 app.post('/o/:org/e/:env/samples/:sample_id', isAuthenticated, function (req, res) {
-    if(req.params.sample_id  && req.params.sample_id !='undefined')
-    {
+    if (req.params.sample_id && req.params.sample_id != 'undefined') {
         sample.fetchSample(req.params.sample_id, function (error, entities) {
-            if(!error){
+            if (!error) {
                 registry.performTask(req.params.org, req.params.env, entities[0], req.token, req.user, req.body, "deploy", res);
-            }else{
-                res.end('Sample ' +req.params.sample_id+' not found' );
+            } else {
+                res.end('Sample ' + req.params.sample_id + ' not found');
             }
         });
-    }else{
-        res.end('Sample is undefined, pls refresh your page' );
+    } else {
+        res.end('Sample is undefined, pls refresh your page');
     }
 });
 
 app.get('/samples', function (req, res) {
-    console.log(req.query.ql)
-    sample.fetchSamples(req.query.ql,function (error, entities) {
+    sample.fetchSamples(req.query.ql, function (error, entities) {
         if (error) {
             console.log(error);
         }
@@ -99,7 +99,6 @@ app.get('/samples', function (req, res) {
 
 
 app.get('/samples/:id', function (req, res) {
-    console.log(req.params.id);
     sample.fetchSampleByName(req.params.id, function (error, entities) {
         if (error) {
             console.log(error);
@@ -122,54 +121,54 @@ app.post('/samples', isAuthenticated, function (req, res) {
         description: req.body.description,
         git_repo: req.body.gitURL,
         api_folder: req.body.apiFolder,
+        sample_type: req.body.sample_type,
         user: req.body.user,
+        type: req.body.type,
         envVars: req.body.envVars
     };
     registry.createEntry(app, ent,
         function (error, entity) {
-            console.log('registry.createEntry done')
-            console.log(error)
-            if(!error){
+            console.log('registry.createEntry done');
+            if (!error) {
                 sample.createSample(entity, function (error, entities) {
-                    console.log('createSample in baas done')
-                    console.log(error)
+                    console.log('createSample in baas done');
                     if (error) {
+                        console.log(error);
                         res.json({error: true, response: "Application error"});
                     } else {
                         res.json(entity);
                     }
                 });
-            }else{
+            } else {
+                console.log(error);
                 res.json({error: true, response: "Application error"});
             }
         });
 });
 
 app.delete('/samples/:sampleid', isAuthenticated, function (req, res) {
-    console.log('deleting sample');
+    console.log('Deleting sample');
     sample.deleteSample(req.params.sampleid, function (error, entities) {
         if (error) {
-            console.log('could not delete sample')
-            console.log('error')
+            console.log('Could not delete sample');
             res.json({error: true, response: "Application error"});
         } else {
-            console.log('sample deleted ' );
-            console.log(entities)
-            if(entities && entities[0])
-            {
+            console.log('Sample deleted');
+            console.log(entities);
+            if (entities && entities[0]) {
                 registry.deleteEntry(app, entities[0],
-                function (rerror, entity) {
-                    if (rerror) {
-                        console.log(rerror)
-                        res.json({error: true, response: "Application error"});
-                    }
-                    else {
-                        console.log('deleted from registry')
-                        res.send(entity)
-                    }
-                })
-            }else{
-                res.json({error:true, response:'Sample Deleted, but registry cleanup failed'})
+                    function (rerror, entity) {
+                        if (rerror) {
+                            console.log(rerror);
+                            res.json({error: true, response: "Application error"});
+                        }
+                        else {
+                            console.log('deleted from registry');
+                            res.send(entity)
+                        }
+                    })
+            } else {
+                res.json({error: true, response: 'Sample Deleted, but registry cleanup failed'})
             }
 
         }
@@ -189,6 +188,12 @@ app.post('/user', isAuthenticated, function (req, res) {
                 });
             }
         }
+    });
+});
+
+app.get('/admins', isAuthenticated, function (req, res) {
+    baas.get(constants.ADMINS, "", function (error, body) {
+        res.json(body);
     });
 });
 
