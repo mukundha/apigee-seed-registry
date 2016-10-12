@@ -60,7 +60,7 @@ module.exports = {
                 body.env = env;
                 body.token = token;
                 image_builder.dockerRun(config.dockerPrefix + sample.name ,task_cmd,body, res )
-                    .then(function(){
+                    .then(function(deploymentId){
                         console.log('run success')
                         task.updateTask(sample, org, env, status, user, task_cmd.toUpperCase(), task_id, function (error, entities) {
                         stacktrace = stacktrace + "\n------ " + task_cmd + " Completed ------";
@@ -71,6 +71,9 @@ module.exports = {
                             sample_name: sample.display_name,
                             stacktrace: stacktrace
                         });
+                        var logsUrl =  '/deployments/' + deploymentId + '/logs'
+                        res.setHeader('Location',logsUrl)
+                        res.write('Deployment: ' + deploymentId)
                         res.end("Task - " + task_cmd.toUpperCase() + " Completed");
                         });
                     },function(err){

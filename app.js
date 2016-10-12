@@ -8,6 +8,7 @@ var bodyParser = require('body-parser');
 var cors = require('cors');
 var jwtDecode = require('jwt-decode');
 var fs = require('fs');
+var proxy = require('express-http-proxy');
 
 var config = require('./config/config');
 var sample = require('./server/lib/sample');
@@ -221,6 +222,13 @@ app.get('/contribution-guide', function (req, res) {
     });
 });
 
+app.use('/deployments/:id/logs',proxy(config.kubectlHost,{
+    forwardPath: function(req,res){        
+        var path = '/api/v1/namespaces/default/pods/' + req.params.id  + '/log'
+        console.log(path)
+        return path
+    }
+}))
 
 registry.init(app)
     .then(function (done) {
