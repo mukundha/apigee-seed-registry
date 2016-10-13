@@ -2,7 +2,9 @@
   "name": "apigee-seed-registry",
   "version": "2.0.0",
   "description": "Registry for Apigee Seed",
-  "scripts": {},
+  "scripts": {
+    "start": "node app.js"
+  },
   "license": "MIT",
   "devDependencies": {
     "del": "^2.0.2",
